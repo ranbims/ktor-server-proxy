@@ -13,16 +13,31 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.util.*
 import io.ktor.utils.io.*
+import java.io.File
+import java.security.KeyStore
 
+@InternalAPI
 class HttpProxy {
-    fun startProxy() {
+
+    fun loadKeyStore(): KeyStore {
+        val file: File = File("temporary.jks")
+        val fis = file.inputStream()
+        val keyStore = KeyStore.getInstance("JKS")
+        keyStore.load(fis, "changeit".toCharArray())
+        return keyStore
+    }
+
+    fun startProxy(keyStore: KeyStore? = null, alias: String = "", passward: String = "") {
         embeddedServer(Netty, environment = applicationEngineEnvironment {
+
             connector {
                 port = 8080
                 host = "127.0.0.1"
 
                 module {
-                    val client = HttpClient(CIO)
+                    val client = HttpClient(CIO) {
+                        followRedirects = true
+                    }
                     val wikipediaLang = "en"
                     intercept(ApplicationCallPipeline.Call) {
                         val channel: ByteReadChannel = call.request.receiveChannel()
@@ -73,6 +88,12 @@ class HttpProxy {
                         }
 
                     }
+                }
+            }
+
+            if (keyStore != null) {
+                sslConnector(keyStore!!, alias!!, { passward.toCharArray() }, { passward.toCharArray() }) {
+                    port = 8181
                 }
             }
         }).start(wait = true)

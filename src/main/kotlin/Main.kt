@@ -1,5 +1,12 @@
+import io.ktor.util.*
 import org.ranbi.HttpProxy
 
+@InternalAPI
 fun main() {
-    HttpProxy().startProxy()
+    val proxy = HttpProxy()
+
+    // Start a proxy with no parameters means the server won't support https request.
+    // proxy.startProxy()
+
+    proxy.startProxy(proxy.loadKeyStore(), "mykey", "changeit")
 }
